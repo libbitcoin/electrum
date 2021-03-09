@@ -1237,6 +1237,7 @@ class LnKeyFamily(IntEnum):
     DELAY_BASE = 4 | BIP32_PRIME
     REVOCATION_ROOT = 5 | BIP32_PRIME
     NODE_KEY = 6
+    BACKUP_CIPHER = 7 | BIP32_PRIME
 
 
 def generate_keypair(node: BIP32Node, key_family: LnKeyFamily) -> Keypair:

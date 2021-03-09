@@ -133,6 +133,29 @@ if [[ $1 == "breach" ]]; then
 fi
 
 
+if [[ $1 == "restore" ]]; then
+    wait_for_balance alice 1
+    echo "alice opens channel"
+    bob_node=$($bob nodeid)
+    channel=$($alice open_channel $bob_node 0.15)
+    new_blocks 3
+    wait_until_channel_open alice
+    request=$($bob add_lightning_request 0.01 -m "blah" | jq -r ".invoice")
+    echo "alice pays"
+    $alice lnpay $request
+    seed=$($alice getseed)
+    $alice stop
+    sleep 2 # FIXME: we should not have to do that..
+    rm /tmp/alice/regtest/wallets/default_wallet
+    $alice -o restore "$seed"
+    $alice daemon -d
+    $alice load_wallet
+    $alice list_channels
+    $alice list_gossip_peers
+    $alice request_force_close $channel
+fi
+
+
 if [[ $1 == "extract_preimage" ]]; then
     # instead of settling bob will broadcast
     $bob enable_htlc_settle false

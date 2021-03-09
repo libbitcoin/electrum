@@ -343,16 +343,8 @@ class Abstract_Wallet(AddressSynchronizer, ABC):
         # we want static_remotekey to be a wallet address
         return self.txin_type == 'p2wpkh'
 
-    def init_lightning(self):
-        assert self.can_have_lightning()
-        if self.db.get('lightning_privkey2'):
-            return
-        # TODO derive this deterministically from wallet.keystore at keystore generation time
-        # probably along a hardened path ( lnd-equivalent would be m/1017'/coinType'/ )
-        seed = os.urandom(32)
-        node = BIP32Node.from_rootseed(seed, xtype='standard')
-        ln_xprv = node.to_xprv()
-        self.db.put('lightning_privkey2', ln_xprv)
+    def get_lightning_key(self):
+        return self.keystore.get_lightning_key()
 
     async def stop(self):
         """Stop all networking and save DB to disk."""
@@ -895,9 +887,10 @@ class Abstract_Wallet(AddressSynchronizer, ABC):
 
     def add_transaction(self, tx, *, allow_unrelated=False):
         tx_was_added = super().add_transaction(tx, allow_unrelated=allow_unrelated)
-
         if tx_was_added:
             self._maybe_set_tx_label_based_on_invoices(tx)
+            if self.lnworker:
+                self.lnworker.maybe_add_backup_from_tx(tx)
         return tx_was_added
 
     @profiler
@@ -2741,11 +2734,8 @@ class Deterministic_Wallet(Abstract_Wallet):
         # generate addresses now. note that without libsecp this might block
         # for a few seconds!
         self.synchronize()
-
-        # create lightning keys
-        if self.can_have_lightning():
-            self.init_lightning()
-        ln_xprv = self.db.get('lightning_privkey2')
+        ln_xprv = self.db.get('lightning_xprv')
+        assert ln_xprv
         # lnworker can only be initialized once receiving addresses are available
         # therefore we instantiate lnworker in DeterministicWallet
         self.lnworker = LNWallet(self, ln_xprv) if ln_xprv else None
@@ -3126,6 +3116,8 @@ def create_new_wallet(*, path, config: SimpleConfig, passphrase=None, password=N
     k = keystore.from_seed(seed, passphrase)
     db.put('keystore', k.dump())
     db.put('wallet_type', 'standard')
+    #if seed_type == 'segwit': # and not multisig?
+    db.put('lightning_xprv', k.get_lightning_xprv(None))
     if gap_limit is not None:
         db.put('gap_limit', gap_limit)
     wallet = Wallet(db, storage, config=config)
@@ -3171,6 +3163,7 @@ def restore_wallet_from_text(text, *, path, config: SimpleConfig,
         else:
             raise Exception("Seed or key not recognized")
         db.put('keystore', k.dump())
+        db.put('lightning_xprv', k.get_lightning_xprv(None))
         db.put('wallet_type', 'standard')
         if gap_limit is not None:
             db.put('gap_limit', gap_limit)

@@ -1791,22 +1791,24 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, Logger):
         WaitingDialog(self, _('Broadcasting transaction...'),
                       broadcast_thread, broadcast_done, self.on_error)
 
-    def mktx_for_open_channel(self, funding_sat):
+    def mktx_for_open_channel(self, funding_sat, node_id):
         coins = self.get_coins(nonlocal_only=True)
-        make_tx = lambda fee_est: self.wallet.lnworker.mktx_for_open_channel(coins=coins,
-                                                                             funding_sat=funding_sat,
-                                                                             fee_est=fee_est)
+        make_tx = lambda fee_est: self.wallet.lnworker.mktx_for_open_channel(
+            coins=coins,
+            funding_sat=funding_sat,
+            node_id=node_id,
+            fee_est=fee_est)
         return make_tx
 
     def open_channel(self, connect_str, funding_sat, push_amt):
         try:
-            extract_nodeid(connect_str)
+            node_id, rest = extract_nodeid(connect_str)
         except ConnStringFormatError as e:
             self.show_error(str(e))
             return
         # use ConfirmTxDialog
         # we need to know the fee before we broadcast, because the txid is required
-        make_tx = self.mktx_for_open_channel(funding_sat)
+        make_tx = self.mktx_for_open_channel(funding_sat, node_id)
         d = ConfirmTxDialog(window=self, make_tx=make_tx, output_value=funding_sat, is_sweep=False)
         # disable preview button because the user must not broadcast tx before establishment_flow
         d.preview_button.setEnabled(False)
@@ -1818,11 +1820,12 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, Logger):
         # read funding_sat from tx; converts '!' to int value
         funding_sat = funding_tx.output_value_for_address(ln_dummy_address())
         def task():
-            return self.wallet.lnworker.open_channel(connect_str=connect_str,
-                                                     funding_tx=funding_tx,
-                                                     funding_sat=funding_sat,
-                                                     push_amt_sat=push_amt,
-                                                     password=password)
+            return self.wallet.lnworker.open_channel(
+                connect_str=connect_str,
+                funding_tx=funding_tx,
+                funding_sat=funding_sat,
+                push_amt_sat=push_amt,
+                password=password)
         def on_success(args):
             chan, funding_tx = args
             n = chan.constraints.funding_txn_minimum_depth
