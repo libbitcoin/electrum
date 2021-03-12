@@ -83,7 +83,8 @@ class SynchronizerBase(NetworkJobOnDefaultServer):
                 await group.spawn(self.main())
         finally:
             # we are being cancelled now
-            self.session.unsubscribe(self.status_queue)
+            # TODO: libbitcoin
+            print("self.session.unsubscribe(self.status_queue)")
 
     def _reset_request_counters(self):
         self._requests_sent = 0
@@ -110,7 +111,8 @@ class SynchronizerBase(NetworkJobOnDefaultServer):
             self._requests_sent += 1
             try:
                 async with self._network_request_semaphore:
-                    await self.session.subscribe('blockchain.scripthash.subscribe', [h], self.status_queue)
+                    # TODO: libbitcoin
+                    print("await self.session.subscribe('blockchain.scripthash.subscribe', [h], self.status_queue)")
             except RPCError as e:
                 if e.message == 'history too large':  # no unique error code
                     raise GracefulDisconnect(e, log_level=logging.ERROR) from e

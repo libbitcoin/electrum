@@ -1225,7 +1225,9 @@ class NetworkJobOnDefaultServer(Logger, ABC):
 
     @property
     def session(self):
-        s = self.interface.session
+        # ORIG: s = self.interface.session
+        # TODO: libbitcoin
+        s = self.interface.client
         assert s is not None
         return s
 
@@ -1525,6 +1527,7 @@ class JsonRPCClient:
         self._id = 0
 
     async def request(self, endpoint, *args):
+        # TODO: libbitcoin
         self._id += 1
         data = ('{"jsonrpc": "2.0", "id":"%d", "method": "%s", "params": %s }'
                 % (self._id, endpoint, json.dumps(args)))
