@@ -364,6 +364,17 @@ class Client:
             # nonce = blockheader[76:80]
             queue.put_nowait((seq, height, block_header))
 
+    async def _subscribe_to_scripthash(self, sh, queue):
+        __("Zeromq Client: _subscribe_to_scripthash (stub)")
+        # TODO: libbitcoin here get history and make status (also review this entire func)
+        # https://electrumx-spesmilo.readthedocs.io/en/latest/protocol-methods.html#blockchain-scripthash-subscribe
+        # https://electrumx-spesmilo.readthedocs.io/en/latest/protocol-basics.html#status
+        # https://parazyd.org/git/electrum-obelisk/file/electrumobelisk/protocol.py.html#l57
+        # queue.put_nowait((something,))
+        # while True:
+        #     recv and put in queue
+
+
     async def block_header(self, index):
         """Fetches the block header by height or integer index"""
         __("Zeromq Client: block_header")
