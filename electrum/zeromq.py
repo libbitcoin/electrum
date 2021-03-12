@@ -402,6 +402,12 @@ class Client:
             return error_code, None
         return None, bh2u(data)
 
+    async def broadcast_transaction(self, rawtx):
+        __("Zeromq Client: broadcast_transaction")
+        __(rawtx)
+        command = b'transaction_pool.broadcast'
+        return await self._simple_request(command, unhexlify(rawtx))
+
     async def history4(self, scripthash, height=0):
         __("Zeromq Client: history4")
         command = b'blockchain.fetch_history4'
@@ -415,7 +421,7 @@ class Client:
             kind, tx_hash, index, height, value = row
             return (
                 kind,
-                #COutPoint(tx_hash, index),
+                #COutPoint(tx_hash, index),  # TODO: libbitcoin XXX:
                 (tx_hash, index),
                 height,
                 value,

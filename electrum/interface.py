@@ -903,6 +903,12 @@ class Interface(Logger):
             res = int(res * bitcoin.COIN)
         return res
 
+    async def broadcast_transaction(self, tx, timeout=None):
+        """Broadcasts given transaction"""
+        __("Interface: broadcast_transaction")
+        assert_hex_str(tx)
+        return await self.client.broadcast_transaction(tx)
+
 
 def _assert_header_does_not_check_against_any_chain(header: dict) -> None:
     __("Interface: _assert_header_does_not_check_against_any_chain")
