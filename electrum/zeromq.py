@@ -422,7 +422,7 @@ class Client:
     async def history4(self, scripthash, height=0):
         __("Zeromq Client: history4")
         command = b'blockchain.fetch_history4'
-        decoded_address = unhexlify(scripthash)[::-1]  # TODO: check byte order
+        decoded_address = unhexlify(scripthash)
         error_code, raw_points = await self._simple_request(
             command, decoded_address + struct.pack('<I', height))
         if error_code:
