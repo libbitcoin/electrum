@@ -33,6 +33,7 @@ from ipaddress import (IPv4Network, IPv6Network, ip_address, IPv6Address,
                        IPv4Address)
 from binascii import hexlify, unhexlify
 import logging
+import functools
 
 from aiorpcx import NetAddress
 import certifi
@@ -313,9 +314,23 @@ class Interface(Logger):
     def __str__(self):
         return f"<Interface {self.diagnostic_name()}>"
 
+    def handle_disconnect(func):
+        @functools.wraps(func)
+        async def wrapper_func(self: 'Interface', *args, **kwargs):
+            try:
+                return await func(self, *args, **kwargs)
+            except GracefulDisconnect as e:
+                self.logger.log(e.log_level, f"disconnecting due to {repr(e)}")
+            finally:
+                self.got_disconnected.set()
+                await self.network.connection_down(self)
+                # if was not 'ready' yet, schedule waiting coroutines:
+                self.ready.cancel()
+        return wrapper_func
+
     # @ignore_exceptions  # do not kill network.taskgroup
     @log_exceptions
-    # @handle_disconnect
+    @handle_disconnect
     async def run(self):
         __("Interface: run")
         self.client = zeromq.Client(self.bs, self.bsports,
