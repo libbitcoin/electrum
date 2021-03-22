@@ -423,8 +423,7 @@ class Client:
     async def history4(self, scripthash, height=0):
         __("Zeromq Client: history4")
         command = b'blockchain.fetch_history4'
-        # libbitcoin expects this in reverse?, hence [::-1].
-        decoded_address = unhexlify(scripthash)[::-1]
+        decoded_address = unhexlify(scripthash)
         error_code, raw_points = await self._simple_request(
             command, decoded_address + struct.pack('<I', height))
         if error_code:
@@ -475,7 +474,7 @@ class Client:
     @staticmethod
     def __correlate_spends_to_receives(points, transfers, checksum_to_index):
         for point in points:
-            if point[0] == 0: # receive
+            if point[0] == 0:  # receive
                 continue
 
             spent = {
