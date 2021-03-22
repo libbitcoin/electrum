@@ -807,7 +807,7 @@ class Interface(Logger):
             raise RequestCorrupted('got error %d' % _ec)
         __("Interface: get_balance_for_scripthash: got balance: %s" % balance)
         # TODO: libbitcoin
-        res = {}
+        res = {'confirmed': balance, 'unconfirmed': 0}
         # check response
         assert_dict_contains_field(res, field_name='confirmed')
         assert_dict_contains_field(res, field_name='unconfirmed')

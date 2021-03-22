@@ -38,6 +38,7 @@ import zmq.asyncio
 from .logging import Logger
 from .libbitcoin_errors import make_error_code, ErrorCode
 from .util import bh2u
+from .coutpoint import COutPoint
 
 
 from datetime import datetime
@@ -422,7 +423,8 @@ class Client:
     async def history4(self, scripthash, height=0):
         __("Zeromq Client: history4")
         command = b'blockchain.fetch_history4'
-        decoded_address = unhexlify(scripthash)
+        # libbitcoin expects this in reverse?, hence [::-1].
+        decoded_address = unhexlify(scripthash)[::-1]
         error_code, raw_points = await self._simple_request(
             command, decoded_address + struct.pack('<I', height))
         if error_code:
@@ -432,8 +434,7 @@ class Client:
             kind, tx_hash, index, height, value = row
             return (
                 kind,
-                #COutPoint(tx_hash, index),  # TODO: libbitcoin XXX:
-                (tx_hash, index),
+                COutPoint(tx_hash, index),
                 height,
                 value,
                 checksum(tx_hash[::-1].hex(), index),
