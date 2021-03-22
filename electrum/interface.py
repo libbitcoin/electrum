@@ -41,7 +41,7 @@ import certifi
 from .util import (ignore_exceptions, log_exceptions, bfh, SilentTaskGroup,
                    MySocksProxy, is_integer, is_non_negative_integer,
                    is_hash256_str, is_hex_str, is_int_or_float,
-                   is_non_negative_int_or_float)
+                   is_non_negative_int_or_float, bh2u)
 from . import util
 from . import version
 from . import blockchain
@@ -745,7 +745,20 @@ class Interface(Logger):
         if _ec is not None and _ec != 0:
             raise RequestCorrupted('got error %d' % _ec)
         __("Interface: get_history_for_scripthash: got history: %s" % (history))
-        res = {}
+
+        res = []
+        seen = []  # List to track duplicates
+        for elem in history:
+            e = elem['received'] if 'received' in elem else elem['spent']
+            if bh2u(e['hash']) in seen:
+                continue
+            seen.append(bh2u(e['hash']))
+            # TODO: libbitcoin: hack until sorted out, it seems history
+            # always reports height being 0 for some reason?
+            if e['height'] == 0: e['height'] = 1
+            res.append({'height': e['height'], 'tx_hash': bh2u(e['hash'])})
+        del seen
+
         # check response
         assert_list_or_tuple(res)
         prev_height = 1
