@@ -699,9 +699,13 @@ class Interface(Logger):
         _ec, hashes = await self.client.block_transaction_hashes(tx_height)
         if _ec is not None and _ec != 0:
             raise RequestCorrupted(f'got error {_ec}')
+
+        hashes = [i[0] for i in hashes]  # Decouple from tuples.
         tx_pos = hashes.index(unhexlify(tx_hash)[::-1])
         branch = merkle_branch(hashes, tx_pos)
+
         res = {'block_height': tx_height, 'merkle': branch, 'pos': tx_pos}
+
         block_height = assert_dict_contains_field(res, field_name='block_height')
         merkle = assert_dict_contains_field(res, field_name='merkle')
         pos = assert_dict_contains_field(res, field_name='pos')
