@@ -83,7 +83,8 @@ class SynchronizerBase(NetworkJobOnDefaultServer):
                 await group.spawn(self.main())
         finally:
             # we are being cancelled now
-            self.session.unsubscribe(self.status_queue)
+            # TODO: libbitcoin (this would be handled by zeromq.Client.stop()
+            print("self.session.unsubscribe(self.status_queue)")
 
     def _reset_request_counters(self):
         self._requests_sent = 0
@@ -108,13 +109,12 @@ class SynchronizerBase(NetworkJobOnDefaultServer):
             h = address_to_scripthash(addr)
             self.scripthash_to_address[h] = addr
             self._requests_sent += 1
-            try:
-                async with self._network_request_semaphore:
-                    await self.session.subscribe('blockchain.scripthash.subscribe', [h], self.status_queue)
-            except RPCError as e:
-                if e.message == 'history too large':  # no unique error code
-                    raise GracefulDisconnect(e, log_level=logging.ERROR) from e
-                raise
+            async with self._network_request_semaphore:
+                # TODO: libbitcoin
+                print("await self.session.subscribe('blockchain.scripthash.subscribe', [h], self.status_queue)")
+                # TODO: libbitcoin XXX: Review this, it's probably incorrect
+                print(f"DEBUG: network: subscribe_to_address: {h}")
+                await self.interface.client._subscribe_to_scripthash(h, self.status_queue)
             self._requests_answered += 1
             self.requested_addrs.remove(addr)
 

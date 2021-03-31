@@ -449,7 +449,7 @@ class Network(Logger, NetworkRetryManager[ServerAddr]):
 
     async def _request_server_info(self, interface: 'Interface'):
         await interface.ready
-        session = interface.session
+        # TODO: libbitcoin: session = interface.session
 
         async def get_banner():
             self.banner = await interface.get_server_banner()
@@ -457,7 +457,9 @@ class Network(Logger, NetworkRetryManager[ServerAddr]):
         async def get_donation_address():
             self.donation_address = await interface.get_donation_address()
         async def get_server_peers():
-            server_peers = await session.send_request('server.peers.subscribe')
+            # ORIG: server_peers = await session.send_request('server.peers.subscribe')
+            # TODO: libbitcoin
+            server_peers = []
             random.shuffle(server_peers)
             max_accepted_peers = len(constants.net.DEFAULT_SERVERS) + NUM_RECENT_SERVERS
             server_peers = server_peers[:max_accepted_peers]
@@ -879,21 +881,10 @@ class Network(Logger, NetworkRetryManager[ServerAddr]):
     async def broadcast_transaction(self, tx: 'Transaction', *, timeout=None) -> None:
         if timeout is None:
             timeout = self.get_network_timeout_seconds(NetworkTimeout.Urgent)
-        try:
-            out = await self.interface.session.send_request('blockchain.transaction.broadcast', [tx.serialize()], timeout=timeout)
-            # note: both 'out' and exception messages are untrusted input from the server
-        except (RequestTimedOut, asyncio.CancelledError, asyncio.TimeoutError):
-            raise  # pass-through
-        except aiorpcx.jsonrpc.CodeMessageError as e:
-            self.logger.info(f"broadcast_transaction error [DO NOT TRUST THIS MESSAGE]: {repr(e)}")
-            raise TxBroadcastServerReturnedError(self.sanitize_tx_broadcast_response(e.message)) from e
-        except BaseException as e:  # intentional BaseException for sanity!
-            self.logger.info(f"broadcast_transaction error2 [DO NOT TRUST THIS MESSAGE]: {repr(e)}")
-            send_exception_to_crash_reporter(e)
-            raise TxBroadcastUnknownError() from e
-        if out != tx.txid():
-            self.logger.info(f"unexpected txid for broadcast_transaction [DO NOT TRUST THIS MESSAGE]: {out} != {tx.txid()}")
-            raise TxBroadcastHashMismatch(_("Server returned unexpected transaction ID."))
+        # TODO: libbitcoin
+        _ec = await self.interface.broadcast_transaction(tx.serialize(), timeout=timeout)
+        if _ec != 0:
+            raise TxBroadcastServerReturnedError(f"not validated, error: {_ec!r}")
 
     async def try_broadcasting(self, tx, name):
         try:
@@ -1329,6 +1320,7 @@ class Network(Logger, NetworkRetryManager[ServerAddr]):
         while not self.is_connected():
             await asyncio.sleep(1)
         session = self.interface.session
+        # TODO: libbitcoin
         return parse_servers(await session.send_request('server.peers.subscribe'))
 
     async def send_multiple_requests(self, servers: Sequence[ServerAddr], method: str, params: Sequence):
@@ -1342,6 +1334,7 @@ class Network(Logger, NetworkRetryManager[ServerAddr]):
                 await interface.close()
                 return
             try:
+                # TODO: libbitcoin XXX:
                 res = await interface.session.send_request(method, params, timeout=10)
             except Exception as e:
                 res = e
